@@ -3,11 +3,15 @@
 
 The **Automatic Service App** is a smart mobile application that helps vehicle owners never forget important car maintenance and document renewals. The app tracks kilometers driven and time elapsed, automatically notifying users when parts need replacement (oil, filters, tires, brake pads) or when documents expire (vehicle inspection, insurance, road tax).
 
+---
+
 ### Target Users
 
 👤 **Individual Owners** - Personal assistant preventing costly breakdowns and ensuring legal compliance
 
 🏢 **Fleet Managers** - Comprehensive oversight for companies managing vehicle fleets (Bolt, Uber, delivery services)
+
+---
 
 ### Value Proposition
 
