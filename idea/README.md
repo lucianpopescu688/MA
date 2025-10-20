@@ -1,319 +1,78 @@
-# 🚗 Automatic Service App 🏍️
-## 🎯 Overview
+# 🚗 Service Buddy - Project Documentation
 
-The **Automatic Service App** is a smart mobile application that helps vehicle owners never forget important car maintenance and document renewals. The app tracks kilometers driven and time elapsed, automatically notifying users when parts need replacement (oil, filters, tires, brake pads) or when documents expire (vehicle inspection, insurance, road tax).
+## 1. Project Vision & Goals
 
----
+### The Problem
+Every car owner knows the feeling of suddenly remembering an overdue task: "When was the last oil change?" or "Is my periodic inspection still valid?". Tracking vehicle maintenance and document deadlines is often a disorganized process involving stickers on the windshield, scattered papers, or unreliable memory. This can lead to neglected maintenance, which compromises vehicle safety and resale value, and even legal issues from expired documents.
 
-### Target Users
+### Our Solution
+**Service Buddy** is a modern mobile application designed to be the perfect companion for any vehicle owner. It acts as a proactive digital glovebox, centralizing all important service tasks and document renewals for **one or more vehicles**. The application is built around three core principles:
 
-👤 **Individual Owners** - Personal assistant preventing costly breakdowns and ensuring legal compliance
+* **Simplicity & Organization:** The interface is clean and intuitive, allowing anyone to add or view events quickly. It provides a single, organized dashboard for all vehicle-related deadlines, eliminating clutter and transforming car ownership from a chore into a stress-free experience.
+* **Proactivity:** Instead of relying on memory, the app provides smart, timely reminders, ensuring a user never misses an important service or renewal.
+* **Reliability (Offline-First):** The app is designed to be 100% functional without an internet connection. Users can add, view, and complete tasks anywhere, with data syncing automatically in the background when connectivity is restored.
 
-🏢 **Fleet Managers** - Comprehensive oversight for companies managing vehicle fleets (Bolt, Uber, delivery services)
+## 2. Core Data Model: The `MaintenanceEvent` Entity
 
----
+To maintain focus and simplicity, the entire application logic is built around a single, powerful entity: `MaintenanceEvent`. This model is versatile enough to represent everything from a physical service to a document renewal for any vehicle.
 
-### Value Proposition
+| Field Name          | Data Type     | Description                                                                                                                                                             | Example                                        |
+| ------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| **`id`** | **`String`** | **A [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier) (Universally Unique Identifier). This prevents ID conflicts when items are created offline.** | **`"f47ac10b-58cc-4372-a567-0e02b2c3d479"`** |
+| `vehicleIdentifier` | `String`      | An identifier for the vehicle (e.g., license plate or a nickname). Allows grouping and filtering events per vehicle.                                                    | `"B 123 ABC"` or `"My Duster"`                 |
+| `title`             | `String`      | A concise, user-friendly name for the event. This is the main text displayed in lists.                                                                                  | `"Summer/Winter Tire Change"`                  |
+| `description`       | `String`      | An optional field for extra details, such as policy numbers, specific parts used, or notes.                                                                             | `"Michelin CrossClimate 2 tires"`              |
+| `category`          | `String`      | Defines the event type for filtering and icons. Limited to predefined values.                                                                                           | `'SERVICE'` or `'DOCUMENT'`                    |
+| `dueDate`           | `Date`        | The deadline for the event. This date is used for sorting and triggering notifications.                                                                                 | `2025-11-15`                                   |
+| `status`            | `String`      | The current state of the event, which dictates its visual representation.                                                                                               | `'UPCOMING'`, `'COMPLETED'`, `'OVERDUE'`       |
 
-- ✅ Automated maintenance reminders based on km/time
-- ✅ Complete service history with photo attachments
-- ✅ Legislative updates and compliance alerts
-- ✅ Nearby service center recommendations
-- ✅ Cost tracking and budget forecasting
-- ✅ Fleet-wide analytics and reporting
+## 3. Core Application Functionality (CRUD Operations)
 
----
+The user's interaction with their maintenance data is handled through four fundamental operations (Create, Read, Update, Delete).
 
-## ✨ Key Features
+* **➕ Create:** Users can add a new `MaintenanceEvent` via a prominent "+" button. This opens a form where they fill in the event's details, including the **vehicle identifier**. Upon saving, the event is instantly added to the main list.
 
-### 🔔 Smart Notifications
-Receive timely alerts before services are due, based on distance traveled or time elapsed
+* **📖 Read:** The main screen presents a chronologically sorted list of all `MaintenanceEvent`s. Each item clearly displays the event title and the associated **vehicle identifier**. Tapping an item opens a dedicated details screen.
 
-### 📊 Dashboard Overview
-Visual health indicators for all vehicles with color-coded status (green/yellow/red)
+* **✍️ Update:** Users can modify any event from its details screen. This includes changing the event's status, date, or even moving it to a different **vehicle** by editing the identifier field.
 
-### 📱 Offline-First Design
-Full functionality without internet connection - sync when back online
+* **🗑️ Delete:** An event can be removed by swiping it in the list or via a "Delete" button. A confirmation dialog (`"Are you sure?"`) prevents accidental deletions.
 
-### 🏭 Fleet Management
-Multi-vehicle oversight with role-based access and comprehensive analytics
+## 4. Data Persistence Strategy: Local-First Synchronization
 
-### 📸 Document Management
-OCR-powered receipt scanning with automatic data extraction
+To ensure a fast, reliable, and seamless user experience, **Service Buddy** is architected using a **local-first** approach. The UI interacts exclusively with a local on-device database, making the app feel instantaneous.
 
-### 📈 Cost Analytics
-Track maintenance expenses and predict future costs
+**The Flow for Each Operation:**
+1.  **Local Write:** Any change (create, update, delete) is first committed to the **local database**.
+2.  **Instant UI Update:** The application's UI immediately reflects this change.
+3.  **Background Sync:** The change is added to a queue. When a network connection is available, the sync process sends the queued changes to the **remote server**.
 
----
+This model guarantees that the app is 100% functional offline.
 
-## 🗂️ Domain Model
+## 5. 📶❌ Offline-First Scenarios
 
-### Core Entities
+The local-first architecture ensures that the user's workflow is never interrupted by a lack of internet connectivity.
 
+* **Create (Offline):** A user adds a new event for their second car ("BV 99 ABC") while offline. The event is saved locally (with a newly generated `UUID`) and appears in the app. It will be synced automatically once connectivity is restored.
+
+* **Read (Offline):** All existing events for all vehicles are always available for browsing. The user can check details for any of their cars at any time.
+
+* **Update (Offline):** A user marks the "Annual Inspection" for car "B 123 ABC" as `'COMPLETED'` while offline. The change is saved locally, and the update is queued for the next sync.
+
+* **Delete (Offline):** The user deletes an old service record. The app removes it from the local database and UI instantly and queues the delete command to be sent to the server later.
+
+## 6. UI/UX Mockups
 <table>
-<tr>
-<td width="50%">
-
-#### 🚙 **Vehicle**
-- `id` - Unique identifier
-- `userId` - Owner reference
-- `make` - Manufacturer name
-- `model` - Model name
-- `year` - Manufacturing year
-- `vin` - Vehicle ID number
-- `currentKilometers` - Odometer
-- `purchaseDate` - Acquisition date
-
-</td>
-<td width="50%">
-
-#### 🔧 **ServiceItem**
-- `id` - Unique identifier
-- `vehicleId` - Vehicle reference
-- `itemType` - Service type enum
-- `lastServiceDate` - Last serviced
-- `lastServiceKm` - Last service km
-- `intervalKm` - Km interval
-- `intervalDays` - Time interval
-- `nextDueDate` - Calculated due
-- `nextDueKm` - Calculated km due
-- `status` - Current status enum
-
-</td>
-</tr>
-<tr>
-<td>
-
-#### 📝 **MaintenanceRecord**
-- `id` - Unique identifier
-- `vehicleId` - Vehicle reference
-- `serviceItemId` - Service reference
-- `serviceDate` - Service date
-- `kilometersAtService` - Odometer
-- `serviceProvider` - Provider name
-- `cost` - Service cost
-- `description` - Work details
-- `attachments` - Photos/receipts
-
-</td>
-<td>
-
-#### 🔔 **Notification**
-- `id` - Unique identifier
-- `userId` - User reference
-- `vehicleId` - Vehicle reference
-- `serviceItemId` - Service reference
-- `notificationType` - Type enum
-- `message` - Alert message
-- `sentDate` - Send timestamp
-- `isRead` - Read status
-
-</td>
-</tr>
-<tr>
-<td>
-
-#### 🏢 **Fleet**
-- `id` - Unique identifier
-- `companyName` - Company name
-- `adminUserId` - Admin reference
-- `settings` - Configuration JSON
-- `subscriptionTier` - Billing level
-- `vehicleCount` - Fleet size
-
-</td>
-<td>
-
-#### 👤 **User**
-- `id` - Unique identifier
-- `email` - Login email
-- `passwordHash` - Secure password
-- `firstName` - First name
-- `lastName` - Last name
-- `role` - User role enum
-- `notificationPreferences` - Settings
-- `timezone` - User timezone
-
-</td>
-</tr>
+  <tr align="center">
+    <td>
+      <img width="250" alt="Mockup - Listă Evenimente" src="https://github.com/user-attachments/assets/9a17757e-4c9a-4663-80e5-6287ed0bdadd">
+    </td>
+    <td>
+      <img width="250" alt="Mockup - Detalii Eveniment" src="https://github.com/user-attachments/assets/96d860b0-ab73-4d72-b888-3a8b7b2a855b">
+    </td>
+    <td>
+      <img width="250" alt="Mockup - Adăugare Eveniment" src="https://github.com/user-attachments/assets/0c986a8b-367a-4f58-9af3-753bba3da22f">
+    </td>
+  </tr>
 </table>
 
----
-
-## 🔄 CRUD Operations
-
-### ➕ Create
-
-| Operation | Description | Key Features |
-|-----------|-------------|--------------|
-| **Vehicle** | Add new vehicle with VIN, make, model, current km | Auto-initializes standard service items based on manufacturer |
-| **ServiceItem** | Define custom maintenance tasks | Supports km-based, time-based, or both interval types |
-| **MaintenanceRecord** | Document completed service work | OCR extracts data from receipt photos automatically |
-| **Fleet** | Register company fleet | Configure alerts, cost centers, approval workflows |
-
-### 👁️ Read
-
-| Operation | Description | Key Features |
-|-----------|-------------|--------------|
-| **Dashboard** | View all vehicles and status | Color-coded health indicators, upcoming services, monthly costs |
-| **Vehicle Details** | Complete vehicle profile | Timeline with maintenance history, countdown indicators |
-| **Service List** | All configured service items | Filtered by status, progress bars, estimated costs |
-| **History** | Complete maintenance records | Searchable, filterable, exportable as PDF |
-
-### ✏️ Update
-
-| Operation | Description | Key Features |
-|-----------|-------------|--------------|
-| **Kilometers** | Manual entry or GPS tracking | Auto-recalculates all distance-based service items |
-| **Service Status** | Mark service as completed | Creates maintenance record, recalculates next due date |
-| **Vehicle Info** | Modify vehicle details | Archive when sold, preserving complete history |
-| **Preferences** | Customize notifications | Channels, quiet hours, warning thresholds, frequency |
-
-### 🗑️ Delete
-
-| Operation | Description | Key Features |
-|-----------|-------------|--------------|
-| **Vehicle** | Remove from account | 30-day recovery period, archive option available |
-| **Record** | Remove incorrect entries | Warns about calculation impacts, reverts service item |
-| **ServiceItem** | Remove custom items | Standard items protected, history preserved |
-| **Notification** | Dismiss alerts | Doesn't affect underlying schedule |
-
----
-
-## 💾 Data Persistence
-
-### 📱 Local Storage (SQLite/Realm)
-
-```
-┌─────────────────────────────────────┐
-│      LOCAL DATABASE (OFFLINE)       │
-├─────────────────────────────────────┤
-│ ✓ Complete vehicle data             │
-│ ✓ Service items & schedules         │
-│ ✓ Maintenance history               │
-│ ✓ User preferences                  │
-│ ✓ Pending sync queue                │
-│ ✓ Photos (device file system)      │
-└─────────────────────────────────────┘
-```
-
-**Benefits:**
-- ⚡ Instant load times
-- 📶 Full offline functionality
-- 🔄 Background sync when online
-
-### ☁️ Server Storage (PostgreSQL)
-
-```
-┌─────────────────────────────────────┐
-│     SERVER DATABASE (CLOUD)         │
-├─────────────────────────────────────┤
-│ ✓ User accounts & authentication    │
-│ ✓ Vehicle registry (all users)     │
-│ ✓ Service data with backup          │
-│ ✓ Notification scheduling           │
-│ ✓ Legislative updates database      │
-│ ✓ Fleet analytics & reports         │
-│ ✓ Service provider directory        │
-└─────────────────────────────────────┘
-```
-
-**Benefits:**
-- 🔐 Enterprise-grade security
-- 🔄 Multi-device synchronization
-- 📊 Cross-fleet analytics
-- 💾 Automatic backups
-
-### Synchronization Strategy
-
-| Operation | Local | Server | Sync Timing |
-|-----------|-------|--------|-------------|
-| **Create Vehicle** | Immediate | Background | On connectivity |
-| **Add Record** | Immediate | Async photos | When online |
-| **Update Km** | Immediate | Batched | Every 5 min |
-| **Mark Complete** | Immediate | Immediate | Real-time |
-| **Delete** | Soft delete | Soft delete | Next sync |
-
----
-
-## 🌐 Offline Functionality
-
-### Scenarios
-
-#### ➕ **CREATE** - At Service Center (No Internet)
-
-```
-User completes oil change → Documents immediately
-  ↓
-✓ Select vehicle (from local cache)
-✓ Choose service item
-✓ Enter odometer & cost
-✓ Capture receipt photo
-  ↓
-Saves locally with 'pending_sync' flag
-  ↓
-When online → Uploads to server → Confirms sync
-```
-
-#### 👁️ **READ** - On Road Trip (No Coverage)
-
-```
-User checks maintenance status
-  ↓
-✓ Dashboard loads instantly (local DB)
-✓ All vehicles show current status
-✓ Browse detailed schedules
-✓ View complete history with photos
-✓ All calculations work perfectly
-```
-
-**Limitation:** New legislative updates unavailable offline
-
-#### ✏️ **UPDATE** - Multi-Day Trip (Intermittent Connection)
-
-```
-User updates odometer periodically
-  ↓
-✓ Each update saves locally
-✓ Recalculates service due dates
-✓ Generates local notifications
-✓ Updates queue for sync
-  ↓
-When online → Batch sync → Server validates
-```
-
-#### 🗑️ **DELETE** - Remove Wrong Record (Offline)
-
-```
-User deletes incorrect record
-  ↓
-✓ Shows confirmation
-✓ Marks deleted locally
-✓ Removes from view
-✓ Queues deletion
-  ↓
-When online → Syncs to server → Broadcasts to devices
-```
-
-### Conflict Resolution
-
-When multiple devices make conflicting changes offline:
-
-```
-Device A (offline): Updates odometer to 50,000 km
-Device B (online):  Updates odometer to 50,100 km
-  ↓
-Device A comes online
-  ↓
-Server detects conflict (backward movement)
-  ↓
-Rejects Device A → Sends Device B value
-  ↓
-User notified: "Odometer conflict resolved - using 50,100 km"
-```
-
-**Strategy:** Last write wins (server timestamp) + user notification
-
----
-
-## 🛠️ Technology
