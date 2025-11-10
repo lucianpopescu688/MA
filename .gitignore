@@ -13,6 +13,7 @@ captures/
 .externalNativeBuild/
 .cxx/
 *.apk
+*.aab
 output.json
 
 # IntelliJ
@@ -31,3 +32,10 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Caches
+.kotlin/
+
+mock-ups/
+
+
