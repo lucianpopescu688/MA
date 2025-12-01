@@ -89,24 +89,45 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
         return;
       }
 
-      final newEvent = MaintenanceEvent(
-        id: inputId,
-        title: _titleController.text,
-        vehicleIdentifier: _vehicleController.text,
-        description: _descController.text,
-        category: _category,
-        dueDate: _selectedDate!,
-        status: _status,
-        price: double.parse(_priceController.text),
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(widget.event == null ? "Create Event?" : "Save Changes?"),
+          content: Text(widget.event == null
+              ? "Are you sure you want to add this new event?"
+              : "Are you sure you want to update this event?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Cancel"),
+            ),
+            FilledButton(
+              onPressed: () {
+                final newEvent = MaintenanceEvent(
+                  id: inputId,
+                  title: _titleController.text,
+                  vehicleIdentifier: _vehicleController.text,
+                  description: _descController.text,
+                  category: _category,
+                  dueDate: _selectedDate!,
+                  status: _status,
+                  price: double.parse(_priceController.text),
+                );
+
+                if (widget.event == null) {
+                  provider.addEvent(newEvent);
+                } else {
+                  provider.updateEvent(widget.event!.id, newEvent);
+                }
+
+                Navigator.pop(ctx);
+                Navigator.pop(context);
+              },
+              child: const Text("Confirm"),
+            ),
+          ],
+        ),
       );
-
-      if (widget.event == null) {
-        provider.addEvent(newEvent);
-      } else {
-        provider.updateEvent(widget.event!.id, newEvent);
-      }
-
-      Navigator.pop(context);
     }
   }
 
@@ -138,155 +159,159 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
         title: Text(widget.event == null ? "Add Event" : "Edit Event"),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TextFormField(
-                        controller: _idController,
-                        decoration: const InputDecoration(
-                          labelText: "ID",
-                          border: OutlineInputBorder(),
-                          helperText: "Unique Identifier (UUID)",
-                        ),
-                        validator: (val) => val!.isEmpty ? "ID is required" : null,
-                      ),
-                      const SizedBox(height: 16),
 
-                      TextFormField(
-                        controller: _titleController,
-                        decoration: const InputDecoration(labelText: "Title", border: OutlineInputBorder()),
-                        validator: (val) => val!.isEmpty ? "Title is required" : null,
-                      ),
-                      const SizedBox(height: 16),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextFormField(
+                controller: _idController,
+                decoration: const InputDecoration(
+                  labelText: "ID",
+                  border: OutlineInputBorder(),
+                  helperText: "Unique Identifier (UUID)",
+                ),
+                validator: (val) {
+                  if (val == null || val.isEmpty) return "ID is required";
+                  // Regex for standard UUID (8-4-4-4-12 hex digits)
+                  final uuidRegex = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+                  if (!uuidRegex.hasMatch(val)) {
+                    return "Invalid UUID format (e.g. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)";
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
 
-                      TextFormField(
-                        controller: _vehicleController,
-                        decoration: const InputDecoration(labelText: "Vehicle Identifier", border: OutlineInputBorder()),
-                        validator: (val) => val!.isEmpty ? "Vehicle is required" : null,
-                      ),
-                      const SizedBox(height: 16),
+              TextFormField(
+                controller: _titleController,
+                decoration: const InputDecoration(labelText: "Title", border: OutlineInputBorder()),
+                validator: (val) => val!.isEmpty ? "Title is required" : null,
+              ),
+              const SizedBox(height: 16),
 
-                      TextFormField(
-                        controller: _descController,
-                        decoration: const InputDecoration(labelText: "Description (Optional)", border: OutlineInputBorder()),
-                        maxLines: 3,
-                      ),
-                      const SizedBox(height: 16),
+              TextFormField(
+                controller: _vehicleController,
+                decoration: const InputDecoration(labelText: "Vehicle Identifier", border: OutlineInputBorder()),
+                validator: (val) => val!.isEmpty ? "Vehicle is required" : null,
+              ),
+              const SizedBox(height: 16),
 
-                      TextFormField(
-                        controller: _priceController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: "Price", border: OutlineInputBorder()),
-                        validator: (val) {
-                          if (val!.isEmpty) return "Price is required";
-                          if (double.tryParse(val) == null) return "Invalid number";
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
+              TextFormField(
+                controller: _descController,
+                decoration: const InputDecoration(labelText: "Description (Optional)", border: OutlineInputBorder()),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 16),
 
-                      TextFormField(
-                        controller: _dateController,
-                        readOnly: true,
-                        onTap: _pickDate,
-                        decoration: const InputDecoration(
-                          labelText: "Due Date",
-                          border: OutlineInputBorder(),
-                          suffixIcon: Icon(Icons.calendar_today),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+              TextFormField(
+                controller: _priceController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: "Price", border: OutlineInputBorder()),
+                validator: (val) {
+                  if (val!.isEmpty) return "Price is required";
+                  if (double.tryParse(val) == null) return "Invalid number";
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
 
-                      const Text("Category", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: RadioListTile(
-                              title: const Text("Service"),
-                              value: "SERVICE",
-                              groupValue: _category,
-                              onChanged: (val) => setState(() => _category = val.toString()),
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                          Expanded(
-                            child: RadioListTile(
-                              title: const Text("Document"),
-                              value: "DOCUMENT",
-                              groupValue: _category,
-                              onChanged: (val) => setState(() => _category = val.toString()),
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      DropdownButtonFormField(
-                        value: _status,
-                        items: _statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                        onChanged: (val) => setState(() => _status = val.toString()),
-                        decoration: const InputDecoration(labelText: "Status", border: OutlineInputBorder()),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
+              TextFormField(
+                controller: _dateController,
+                readOnly: true,
+                onTap: _pickDate,
+                decoration: const InputDecoration(
+                  labelText: "Due Date",
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.calendar_today),
                 ),
               ),
-            ),
+              const SizedBox(height: 24),
 
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      offset: const Offset(0, -4),
-                      blurRadius: 10,
-                    )
-                  ]
-              ),
-              child: Row(
+              const Text("Category", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Row(
                 children: [
-                  if (widget.event != null)
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _deleteEvent,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          side: const BorderSide(color: Colors.red, width: 1.5),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: const Text("Delete"),
-                      ),
-                    ),
-                  if (widget.event != null) const SizedBox(width: 16),
                   Expanded(
-                    child: FilledButton(
-                      onPressed: _saveForm,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF0061A4),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
-                      ),
-                      child: const Text("Save Changes"),
+                    child: RadioListTile(
+                      title: const Text("Service"),
+                      value: "SERVICE",
+                      groupValue: _category,
+                      onChanged: (val) => setState(() => _category = val.toString()),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  Expanded(
+                    child: RadioListTile(
+                      title: const Text("Document"),
+                      value: "DOCUMENT",
+                      groupValue: _category,
+                      onChanged: (val) => setState(() => _category = val.toString()),
+                      contentPadding: EdgeInsets.zero,
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+
+              DropdownButtonFormField(
+                value: _status,
+                items: _statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                onChanged: (val) => setState(() => _status = val.toString()),
+                decoration: const InputDecoration(labelText: "Status", border: OutlineInputBorder()),
+              ),
+              // Space for bottom buttons
+              const SizedBox(height: 100),
+            ],
+          ),
+        ),
+      ),
+
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                offset: const Offset(0, -4),
+                blurRadius: 10,
+              )
+            ]
+        ),
+        child: SafeArea(
+          child: Row(
+            children: [
+              if (widget.event != null)
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _deleteEvent,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red, width: 1.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text("Delete"),
+                  ),
+                ),
+              if (widget.event != null) const SizedBox(width: 16),
+              Expanded(
+                child: FilledButton(
+                  onPressed: _saveForm,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF0061A4),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+                  ),
+                  child: const Text("Save Changes"),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
