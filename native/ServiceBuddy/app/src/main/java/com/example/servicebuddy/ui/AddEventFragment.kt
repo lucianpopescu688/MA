@@ -1,4 +1,4 @@
-package com.example.servicebuddy
+package com.example.servicebuddy.ui
 
 import android.app.DatePickerDialog
 import android.os.Bundle
@@ -12,13 +12,16 @@ import android.widget.ImageView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.example.servicebuddy.R
+import com.example.servicebuddy.model.MaintenanceEvent
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
 import java.util.Locale
 import java.util.UUID
 
@@ -51,30 +54,26 @@ class AddEventFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         findViews(view)
 
+        
         val statuses = resources.getStringArray(R.array.status_options)
         val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, statuses)
         actvStatus.setAdapter(adapter)
-        actvStatus.setText(statuses[2], false) // Set "UPCOMING" as default
+        actvStatus.setText(statuses[2], false) 
 
+        
         etId.setText(UUID.randomUUID().toString())
         updateDateInView()
-
         toggleCategory.check(R.id.btn_service)
 
-        ivClose.setOnClickListener {
-            findNavController().popBackStack()
-        }
+        ivClose.setOnClickListener { findNavController().popBackStack() }
+        etDueDate.setOnClickListener { showDatePickerDialog() }
 
-        etDueDate.setOnClickListener {
-            showDatePickerDialog()
-        }
-
+        
         btnSave.setOnClickListener {
-            if (validateInput()) {
-                saveEvent()
+            viewLifecycleOwner.lifecycleScope.launch {
+                validateInputAndSave()
             }
         }
     }
@@ -103,9 +102,9 @@ class AddEventFragment : Fragment() {
             calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
             updateDateInView()
         }
-
         DatePickerDialog(
             requireContext(),
+            R.style.DatePicker, 
             dateSetListener,
             calendar.get(Calendar.YEAR),
             calendar.get(Calendar.MONTH),
@@ -119,89 +118,54 @@ class AddEventFragment : Fragment() {
         etDueDate.setText(sdf.format(calendar.time))
     }
 
-    private fun validateInput(): Boolean {
+    private suspend fun validateInputAndSave() {
         var isValid = true
         val id = etId.text.toString()
 
-        if (id.isNullOrEmpty()) {
+        if (id.isEmpty()) {
             layoutId.error = "ID is required"
             isValid = false
         } else {
             try {
                 UUID.fromString(id)
-                if (viewModel.getEventById(id) != null) {
-                    layoutId.error = "ID already exists"
-                    isValid = false
-                } else {
-                    layoutId.error = null
-                }
+                layoutId.error = null
             } catch (e: IllegalArgumentException) {
-                layoutId.error = "Invalid UUID format"
+                layoutId.error = "Invalid UUID"
                 isValid = false
             }
         }
 
-        if (etTitle.text.isNullOrEmpty()) {
-            layoutTitle.error = "Title is required"
-            isValid = false
-        } else {
-            layoutTitle.error = null
+        if (etTitle.text.isNullOrEmpty()) { layoutTitle.error = "Required"; isValid = false }
+        if (etVehicle.text.isNullOrEmpty()) { layoutVehicle.error = "Required"; isValid = false }
+        if (etPrice.text.isNullOrEmpty()) { layoutPrice.error = "Required"; isValid = false }
+
+        if (!isValid) return
+
+        
+        val existing = viewModel.getEventByIdSuspend(id)
+        if (existing != null) {
+            layoutId.error = "ID already exists"
+            return
         }
 
-        if (etVehicle.text.isNullOrEmpty()) {
-            layoutVehicle.error = "Vehicle Identifier is required"
-            isValid = false
-        } else {
-            layoutVehicle.error = null
-        }
-
-        if (etPrice.text.isNullOrEmpty()) {
-            layoutPrice.error = "Price is required"
-            isValid = false
-        } else {
-            try {
-                etPrice.text.toString().toDouble()
-                layoutPrice.error = null
-            } catch (e: NumberFormatException) {
-                layoutPrice.error = "Invalid price"
-                isValid = false
-            }
-        }
-
-        if (actvStatus.text.isNullOrEmpty()) {
-            (actvStatus.parent.parent as? TextInputLayout)?.error = "Status is required"
-            isValid = false
-        } else {
-            (actvStatus.parent.parent as? TextInputLayout)?.error = null
-        }
-
-        return isValid
+        saveEvent()
     }
 
     private fun saveEvent() {
-        val id = etId.text.toString()
-        val title = etTitle.text.toString()
-        val vehicle = etVehicle.text.toString()
-        val description = etDescription.text.toString()
-        val price = etPrice.text.toString().toDouble()
-        val category = if (toggleCategory.checkedButtonId == R.id.btn_service) "SERVICE" else "DOCUMENT"
-        val status = actvStatus.text.toString()
-        val dueDate = calendar.time
-
         val newEvent = MaintenanceEvent(
-            id = id,
-            title = title,
-            vehicleIdentifier = vehicle,
-            description = description,
-            category = category,
-            dueDate = dueDate,
-            status = status,
-            price = price
+            id = etId.text.toString(),
+            title = etTitle.text.toString(),
+            vehicleIdentifier = etVehicle.text.toString(),
+            description = etDescription.text.toString(),
+            category = if (toggleCategory.checkedButtonId == R.id.btn_service) "SERVICE" else "DOCUMENT",
+            dueDate = calendar.time,
+            status = actvStatus.text.toString(),
+            price = etPrice.text.toString().toDoubleOrNull() ?: 0.0
         )
 
+        
         viewModel.addEvent(newEvent)
         Toast.makeText(context, "Event Saved", Toast.LENGTH_SHORT).show()
-
         findNavController().popBackStack()
     }
 }

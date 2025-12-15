@@ -1,4 +1,4 @@
-package com.example.servicebuddy
+package com.example.servicebuddy.ui
 
 import android.view.LayoutInflater
 import android.view.View
@@ -9,7 +9,8 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import java.text.SimpleDateFormat
+import com.example.servicebuddy.R
+import com.example.servicebuddy.model.MaintenanceEvent
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
@@ -31,22 +32,18 @@ class EventAdapter(
         private var currentEvent: MaintenanceEvent? = null
 
         init {
-            itemView.setOnClickListener {
-                currentEvent?.let {
-                    onClick(it)
-                }
-            }
+            itemView.setOnClickListener { currentEvent?.let { onClick(it) } }
         }
 
         fun bind(event: MaintenanceEvent) {
             currentEvent = event
-
             titleTextView.text = event.title
             vehicleTextView.text = event.vehicleIdentifier
             idTextView.text = "ID: ${event.id}"
             statusTextView.text = event.status
             priceTextView.text = "$${event.price}"
 
+            
             val diff = event.dueDate.time - System.currentTimeMillis()
             val days = TimeUnit.MILLISECONDS.toDays(diff)
 
@@ -58,6 +55,7 @@ class EventAdapter(
                 else -> "in $days days"
             }
 
+            
             val statusColor = when (event.status.uppercase(Locale.US)) {
                 "OVERDUE" -> R.color.status_red
                 "UPCOMING" -> R.color.status_orange
@@ -68,6 +66,7 @@ class EventAdapter(
             statusBar.setBackgroundColor(ContextCompat.getColor(itemView.context, statusColor))
             statusTextView.setTextColor(ContextCompat.getColor(itemView.context, statusColor))
 
+            
             val icon = when (event.category.uppercase(Locale.US)) {
                 "SERVICE" -> R.drawable.ic_wrench
                 "DOCUMENT" -> R.drawable.ic_document
@@ -78,23 +77,16 @@ class EventAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): EventViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_event, parent, false)
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_event, parent, false)
         return EventViewHolder(view, onClick)
     }
 
     override fun onBindViewHolder(holder: EventViewHolder, position: Int) {
-        val event = getItem(position)
-        holder.bind(event)
+        holder.bind(getItem(position))
     }
 }
 
 object EventDiffCallback : DiffUtil.ItemCallback<MaintenanceEvent>() {
-    override fun areItemsTheSame(oldItem: MaintenanceEvent, newItem: MaintenanceEvent): Boolean {
-        return oldItem.id == newItem.id
-    }
-
-    override fun areContentsTheSame(oldItem: MaintenanceEvent, newItem: MaintenanceEvent): Boolean {
-        return oldItem == newItem
-    }
+    override fun areItemsTheSame(oldItem: MaintenanceEvent, newItem: MaintenanceEvent): Boolean = oldItem.id == newItem.id
+    override fun areContentsTheSame(oldItem: MaintenanceEvent, newItem: MaintenanceEvent): Boolean = oldItem == newItem
 }

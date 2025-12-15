@@ -1,28 +1,26 @@
-package com.example.servicebuddy
+package com.example.servicebuddy.ui
 
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.EditText
+import android.widget.Toast
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
+import com.example.servicebuddy.R
+import com.example.servicebuddy.model.MaintenanceEvent
 import java.util.Locale
 
 class EventListFragment : Fragment() {
 
     private val viewModel: EventViewModel by activityViewModels()
     private lateinit var eventAdapter: EventAdapter
-    private lateinit var allEvents: List<MaintenanceEvent>
+    private var allEvents: List<MaintenanceEvent> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -33,7 +31,6 @@ class EventListFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         setupMenu()
 
         val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerView)
@@ -45,17 +42,16 @@ class EventListFragment : Fragment() {
 
         viewModel.events.observe(viewLifecycleOwner) { events ->
             allEvents = events
-            eventAdapter.submitList(events)
+            val query = view.findViewById<EditText>(R.id.etSearch).text.toString()
+            filterEvents(query)
         }
 
         val searchEditText = view.findViewById<EditText>(R.id.etSearch)
         searchEditText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 filterEvents(s.toString())
             }
-
             override fun afterTextChanged(s: Editable?) {}
         })
     }
@@ -68,6 +64,12 @@ class EventListFragment : Fragment() {
 
             override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
                 return when (menuItem.itemId) {
+                    
+                    R.id.action_refresh -> {
+                        viewModel.refreshData()
+                        Toast.makeText(context, "Checking connection...", Toast.LENGTH_SHORT).show()
+                        true
+                    }
                     R.id.action_add -> {
                         findNavController().navigate(R.id.action_to_addEventFragment)
                         true
@@ -84,7 +86,7 @@ class EventListFragment : Fragment() {
         } else {
             allEvents.filter {
                 it.title.lowercase(Locale.getDefault()).contains(query.lowercase(Locale.getDefault())) ||
-                it.vehicleIdentifier.lowercase(Locale.getDefault()).contains(query.lowercase(Locale.getDefault()))
+                        it.vehicleIdentifier.lowercase(Locale.getDefault()).contains(query.lowercase(Locale.getDefault()))
             }
         }
         eventAdapter.submitList(filteredList)
