@@ -126,12 +126,11 @@ class AddEventFragment : Fragment() {
             layoutId.error = "ID is required"
             isValid = false
         } else {
-            try {
-                UUID.fromString(id)
-                layoutId.error = null
-            } catch (e: IllegalArgumentException) {
-                layoutId.error = "Invalid UUID"
+            if (!isValidUUID(id)) {
+                layoutId.error = "Invalid UUID: '$id'. Use 8-4-4-4-12 characters."
                 isValid = false
+            } else {
+                layoutId.error = null
             }
         }
 
@@ -167,5 +166,10 @@ class AddEventFragment : Fragment() {
         viewModel.addEvent(newEvent)
         Toast.makeText(context, "Event Saved", Toast.LENGTH_SHORT).show()
         findNavController().popBackStack()
+    }
+
+    private fun isValidUUID(uuid: String): Boolean {
+        val uuidRegex = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$".toRegex()
+        return uuid.matches(uuidRegex)
     }
 }

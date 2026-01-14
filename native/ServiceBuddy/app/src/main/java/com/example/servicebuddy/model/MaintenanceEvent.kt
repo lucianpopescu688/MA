@@ -17,7 +17,6 @@ data class MaintenanceEvent(
     var status: String,
     var price: Double,
 
-    
     var isDirty: Boolean = false,         
     var isDeletedLocally: Boolean = false 
 )

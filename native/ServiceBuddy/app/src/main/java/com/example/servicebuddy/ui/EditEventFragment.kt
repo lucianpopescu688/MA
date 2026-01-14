@@ -110,13 +110,25 @@ class EditEventFragment : Fragment() {
     }
 
     private suspend fun validateAndSave() {
-        val newId = etId.text.toString()
-        if (newId.isEmpty()) { layoutId.error = "Required"; return }
+        val newId = etId.text.toString().trim()
 
-        
-        if (newId != currentEvent?.id && viewModel.getEventByIdSuspend(newId) != null) {
-            layoutId.error = "ID Exists"; return
+        // ID validation
+        if (newId.isEmpty()) {
+            layoutId.error = "Required"
+            return
         }
+
+        if (!isValidUUID(newId)) {
+            layoutId.error = "Invalid UUID: '$newId'. Use 8-4-4-4-12 characters."
+            return
+        }
+
+        if (newId != currentEvent?.id && viewModel.getEventByIdSuspend(newId) != null) {
+            layoutId.error = "ID already exists"
+            return
+        }
+        
+        layoutId.error = null // Clear error if validation passes
 
         val updated = currentEvent!!.copy(
             id = newId,
@@ -130,6 +142,11 @@ class EditEventFragment : Fragment() {
         )
         viewModel.updateEventById(currentEvent!!.id, updated)
         findNavController().popBackStack()
+    }
+
+    private fun isValidUUID(uuid: String): Boolean {
+        val uuidRegex = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$".toRegex()
+        return uuid.matches(uuidRegex)
     }
 
     private fun confirmDelete() {

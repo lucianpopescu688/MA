@@ -176,7 +176,6 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
                 ),
                 validator: (val) {
                   if (val == null || val.isEmpty) return "ID is required";
-                  // Regex for standard UUID (8-4-4-4-12 hex digits)
                   final uuidRegex = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
                   if (!uuidRegex.hasMatch(val)) {
                     return "Invalid UUID format (e.g. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)";
@@ -263,7 +262,6 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
                 onChanged: (val) => setState(() => _status = val.toString()),
                 decoration: const InputDecoration(labelText: "Status", border: OutlineInputBorder()),
               ),
-              // Space for bottom buttons
               const SizedBox(height: 100),
             ],
           ),

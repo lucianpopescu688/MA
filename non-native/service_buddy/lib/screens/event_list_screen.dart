@@ -52,7 +52,6 @@ class _EventListScreenState extends State<EventListScreen> {
       ),
       body: Column(
         children: [
-          // Search Bar
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: TextField(
@@ -76,7 +75,6 @@ class _EventListScreenState extends State<EventListScreen> {
             ),
           ),
 
-          // List
           Expanded(
             child: ListView.builder(
               controller: _scrollController,

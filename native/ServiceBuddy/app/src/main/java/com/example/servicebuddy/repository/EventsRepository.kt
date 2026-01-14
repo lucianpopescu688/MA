@@ -8,6 +8,7 @@ import com.example.servicebuddy.model.MaintenanceEvent
 import com.example.servicebuddy.network.RetrofitClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import okhttp3.Response
 import okhttp3.WebSocket
@@ -15,9 +16,9 @@ import okhttp3.WebSocketListener
 
 class EventsRepository(private val eventDao: MaintenanceEventDao) {
 
-    val allEvents: LiveData<List<MaintenanceEvent>> = eventDao.getAllEvents()
+    val allEvents: Flow<List<MaintenanceEvent>> = eventDao.getAllEvents()
 
-    private val _connectionStatus = MutableLiveData(false)
+    private val _connectionStatus = MutableLiveData(true)
     val connectionStatus: LiveData<Boolean> = _connectionStatus
 
     private var webSocket: WebSocket? = null
@@ -59,7 +60,6 @@ class EventsRepository(private val eventDao: MaintenanceEventDao) {
             initWebSocket()
         }
 
-        
         syncLocalChanges()
         fetchFromNetwork()
     }
@@ -81,33 +81,31 @@ class EventsRepository(private val eventDao: MaintenanceEventDao) {
     suspend fun createEvent(event: MaintenanceEvent): Boolean {
         event.isDirty = true
         eventDao.insert(event)
-        return try {
+        try {
             val response = RetrofitClient.api.addEvent(event)
             if (response.isSuccessful) {
                 event.isDirty = false
                 eventDao.insert(event)
             }
-            response.isSuccessful
         } catch (e: Exception) {
             Log.e("Repo", "Create offline: ${e.message}")
-            false
         }
+        return true
     }
 
     suspend fun updateEvent(event: MaintenanceEvent): Boolean {
         event.isDirty = true
         eventDao.insert(event)
-        return try {
+        try {
             val response = RetrofitClient.api.updateEvent(event.id, event)
             if (response.isSuccessful) {
                 event.isDirty = false
                 eventDao.insert(event)
             }
-            response.isSuccessful
         } catch (e: Exception) {
             Log.e("Repo", "Update offline: ${e.message}")
-            false
         }
+        return true
     }
 
     suspend fun getEvent(id: String): MaintenanceEvent? = eventDao.getEventById(id)
@@ -116,16 +114,15 @@ class EventsRepository(private val eventDao: MaintenanceEventDao) {
         val event = eventDao.getEventById(id) ?: return false
         event.isDeletedLocally = true
         eventDao.update(event)
-        return try {
+        try {
             val response = RetrofitClient.api.deleteEvent(id)
             if (response.isSuccessful) {
                 eventDao.deleteById(id)
             }
-            response.isSuccessful
         } catch (e: Exception) {
             Log.e("Repo", "Delete offline: ${e.message}")
-            false
         }
+        return true
     }
 
     private suspend fun syncLocalChanges() {
